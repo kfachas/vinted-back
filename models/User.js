@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
-const Account = mongoose.model("Account", {
-email: {
+const User = mongoose.model("User", {
+  email: {
     unique: true,
     type: String,
   },
@@ -11,11 +11,11 @@ email: {
       type: String,
     },
     phone: String,
-    avatar: Object, // nous verrons plus tard comment uploader une image
+    avatar: Object,
   },
   token: String,
   hash: String,
   salt: String,
 });
 
-module.exports = Account;
+module.exports = User;

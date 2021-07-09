@@ -27,6 +27,10 @@ const offersRoutes = require("./routes/offers");
 app.use(userRoutes);
 app.use(offersRoutes);
 
+app.get("/", (req, res) => {
+  res.status(200).json("Bienvenue sur l'API de Vinted");
+});
+
 app.all("*", (req, res) => {
   res.status(400).json({ message: "Page not found ! 😔" });
 });

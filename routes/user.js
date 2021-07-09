@@ -1,77 +1,87 @@
 const express = require("express");
 const router = express.Router();
+// For authentification :
 const uid2 = require("uid2");
 const SHA256 = require("crypto-js/sha256");
 const encBase64 = require("crypto-js/enc-base64");
+
 const cloudinary = require("cloudinary").v2;
 
-const Account = require("../models/User");
+const User = require("../models/User");
+const Offer = require("../models/Offer");
 
+// Road for inscription
 router.post("/user/signup", async (req, res) => {
   try {
-    // Créer un nouveau compte et vérifier si il n'existe pas
-    if (!req.fields.username) {
-      return res
-        .status(400)
-        .json({ message: "Veuillez insérer un nom d'utilisateur" });
+    // search if email already exist in DB
+    const user = await User.findOne({ email: req.fields.email });
+
+    // if she already exist then return error message
+    if (user) {
+      res.status(409).json({ message: "This email already has an account" });
+
+      // Else if the user filled all required elements :
+    } else {
+      if (req.fields.email && req.fields.password && req.fields.username) {
+        const token = uid2(64);
+        const salt = uid2(64);
+        const hash = SHA256(req.fields.password + salt).toString(encBase64);
+
+        // Create his account
+        const newUser = new User({
+          email: req.fields.email,
+          token: token,
+          hash: hash,
+          salt: salt,
+          account: {
+            username: req.fields.username,
+            phone: req.fields.phone,
+          },
+        });
+
+        // Save his account in DB
+        await newUser.save();
+        res.status(200).json({
+          _id: newUser._id,
+          email: newUser.email,
+          token: newUser.token,
+          account: newUser.account,
+        });
+      } else {
+        // Else if the user forgot to filled some parametres required :
+        res.status(400).json({ message: "Missing parameters" });
+      }
     }
-    const testUser = await Account.findOne({ email: req.fields.email });
-    if (testUser) {
-      return res.status(400).json({ error: { message: "Mail already exist" } });
-    }
-    const newToken = uid2(64);
-    const newSalt = uid2(16);
-    const newHash = SHA256(req.fields.password + newSalt).toString(encBase64);
-    const result = await cloudinary.uploader.upload(req.files.picture.path, {
-      folder: `vinted/profil/${req.fields.email}`,
-    });
-
-    const newUser = new Account({
-      email: req.fields.email,
-      token: newToken,
-      account: {
-        username: req.fields.username,
-        phone: req.fields.phone,
-        avatar: {
-          secure_url: result.secure_url,
-        },
-      },
-      hash: newHash,
-      salt: newSalt,
-    });
-
-    await newUser.save();
-
-    return res.status(200).json({
-      _id: newUser.id,
-      token: newUser.token,
-      account: {
-        username: newUser.account.username,
-        phone: newUser.account.phone,
-      },
-    });
   } catch (error) {
-    return res.status(400).json(error.message);
+    console.log(error.message);
+    res.status(400).json({ message: error.message });
   }
 });
 
+// Road for login
 router.post("/user/login", async (req, res) => {
   try {
-    const userConnect = await Account.findOne({ email: req.fields.email });
-    const newHash = SHA256(req.fields.password + userConnect.salt).toString(
-      encBase64
-    );
-    if (newHash === userConnect.hash) {
-      return res.status(200).json({
-        _id: userConnect.id,
-        token: userConnect.token,
-        account: userConnect.account,
-      });
+    const user = await User.findOne({ email: req.fields.email });
+
+    if (user) {
+      if (
+        SHA256(req.fields.password + user.salt).toString(encBase64) ===
+        user.hash
+      ) {
+        res.status(200).json({
+          _id: user._id,
+          token: user.token,
+          account: user.account,
+        });
+      } else {
+        res.status(401).json({ error: "Unauthorized" });
+      }
     } else {
-      return res.status(401).json("Wrong password");
+      res.status(400).json({ message: "User not found" });
     }
   } catch (error) {
-    return res.status(400).json({ message: error.message });
+    console.log(error.message);
+    res.json({ message: error.message });
   }
 });
 

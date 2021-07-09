@@ -3,7 +3,7 @@ const Account = require("../models/User");
 const isAuthenticated = async (req, res, next) => {
   if (req.headers.authorization) {
     const searchToken = req.headers.authorization.replace("Bearer ", "");
-    // Rechercher dans la BDD si ce token existe
+    // Search if this token exist in DB
     const user = await Account.findOne({ token: searchToken });
     if (!user) {
       return res.status(401).json("Unauthorized");

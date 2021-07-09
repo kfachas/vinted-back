@@ -1,178 +1,222 @@
 const express = require("express");
 const router = express.Router();
+
 const cloudinary = require("cloudinary").v2;
-const isAuthenticated = require("../middleware/isAuthenticated");
-const uid2 = require("uid2");
 
+const User = require("../models/User");
 const Offer = require("../models/Offer");
-const Account = require("../models/User");
 
-router.post("/offer/publish", isAuthenticated, async (req, res) => {
-  try {
-    const actualUser = await Account.findById(req.user);
-    if (
-      req.fields.title.length > 50 ||
-      req.fields.description.length > 500 ||
-      req.fields.price.length > 100000
-    ) {
-      return res.status(400).json({ error: "Trop de caractères" });
-    }
-    // DESTRUCTURING
-    // const {title, description, price, condition, city, brand, size, color} = req.fields
-
-    const newOffer = new Offer({
-      product_name: req.fields.title,
-      product_description: req.fields.description,
-      product_price: req.fields.price,
-      product_details: [
-        { MARQUE: req.fields.brand },
-        { TAILLE: req.fields.size },
-        { ETAT: req.fields.condition },
-        { COULEUR: req.fields.color },
-        { EMPLACEMENT: req.fields.city },
-      ],
-      owner: actualUser,
-    });
-    if (req.files.picture.size !== 0) {
-      const result = await cloudinary.uploader.upload(req.files.picture.path, {
-        folder: `vinted/offers/${newOffer.id}`,
-      });
-      newOffer.product_image = result.secure_url;
-      await newOffer.save();
-      return res.status(200).json({
-        _id: newOffer.id,
-        product_name: newOffer.product_name,
-        product_description: newOffer.product_description,
-        product_price: newOffer.product_price,
-        product_details: newOffer.product_details,
-        owner: {
-          account: actualUser.account,
-          id: actualUser.id,
-        },
-        product_image: newOffer.product_image,
-      });
-    } else {
-      await newOffer.save();
-      return res.status(200).json({
-        _id: newOffer.id,
-        product_name: newOffer.product_name,
-        product_description: newOffer.product_description,
-        product_price: newOffer.product_price,
-        product_details: newOffer.product_details,
-        owner: {
-          account: actualUser.account,
-          id: actualUser.id,
-        },
-      });
-    }
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-router.put("/offer/update", isAuthenticated, async (req, res) => {
-  try {
-    const updateOffer = await Offer.findById(req.fields.id);
-    if (Object.keys(req.fields).length > 1) {
-      if (req.fields.title) {
-        updateOffer.product_name = req.fields.title;
-      }
-      if (req.fields.description) {
-        updateOffer.product_description = req.fields.description;
-      }
-      if (req.fields.price) {
-        updateOffer.product_price = req.fields.price;
-      }
-      if (req.fields.condition) {
-        updateOffer.product_details["ETAT"] =
-          req.fields.product_details.condition;
-      }
-    } else {
-      return res.status(400).json({ message: "Aucune modification effectué " });
-    }
-
-    await updateOffer.save();
-
-    res.status(200).json(updateOffer);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-router.delete("/offer/delete", isAuthenticated, async (req, res) => {
-  try {
-    const offer = await Offer.findByIdAndDelete(req.fields.id);
-    if (!offer) {
-      return res.status(400).json({ message: "Offer not found" });
-    } else {
-      cloudinary.uploader.destroy(`${req.fields.id}`, function (result) {
-        console.log(result);
-      });
-      return res.status(200).json({ error: "Offer successfuly deleted" });
-    }
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
+const isAuthenticated = require("../middleware/isAuthenticated");
+// Road who gets all the offers based on the filters
 router.get("/offers", async (req, res) => {
   try {
-    if (req.query) {
-      const newObj = {};
-      const sortObj = {};
-      if (req.query.title) {
-        newObj.product_name = new RegExp(req.query.title, "i");
-      }
-      if (req.query.priceMin) {
-        newObj.product_price = { $gte: Number(req.query.priceMin) };
-      }
-      if (req.query.priceMax) {
-        if (newObj.product_price) {
-          newObj.product_price.$lte = Number(req.query.priceMax);
-        } else {
-          newObj.product_price = { $lte: Number(req.query.priceMax) };
-        }
-      }
-      try {
-        if (req.query.sort === "price-asc" || req.query.sort === "price-desc") {
-          sortObj.sort = {
-            product_price: req.query.sort.replace("price-", ""),
-          };
-        }
-      } catch (error) {}
+    // create an object who will contain differents filters
+    let filters = {};
 
-      let page;
-      const limit = Number(req.query.limit);
-      if (Number(req.query.page < 1)) {
-        page = 1;
-      } else {
-        const page = Number(req.query.page);
-      }
-
-      const offer = await Offer.find(newObj)
-        .sort(sortObj.sort)
-        .limit(limit)
-        .skip((page - 1) * limit)
-        .select("product_name product_price");
-      const count = await Offer.countDocuments(newObj);
-      return res.json({ count: count, offers: offer });
-    } else {
-      res.status(400).json({ message: error.message });
+    if (req.query.title) {
+      filters.product_name = new RegExp(req.query.title, "i");
     }
+
+    if (req.query.priceMin) {
+      filters.product_price = {
+        $gte: req.query.priceMin,
+      };
+    }
+
+    if (req.query.priceMax) {
+      if (filters.product_price) {
+        filters.product_price.$lte = req.query.priceMax;
+      } else {
+        filters.product_price = {
+          $lte: req.query.priceMax,
+        };
+      }
+    }
+
+    let sort = {};
+
+    if (req.query.sort === "price-desc") {
+      sort = { product_price: -1 };
+    } else if (req.query.sort === "price-asc") {
+      sort = { product_price: 1 };
+    }
+
+    let page;
+    if (Number(req.query.page) < 1) {
+      page = 1;
+    } else {
+      page = Number(req.query.page);
+    }
+
+    let limit = Number(req.query.limit);
+
+    const offers = await Offer.find(filters)
+      .populate({
+        path: "owner",
+        select: "account",
+      })
+      .sort(sort)
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const count = await Offer.countDocuments(filters);
+
+    res.json({
+      count: count,
+      offers: offers,
+    });
   } catch (error) {
+    console.log(error.message);
     res.status(400).json({ message: error.message });
   }
 });
 
+// Road who get all info of an offer in function of his id
 router.get("/offer/:id", async (req, res) => {
   try {
-    const newOffer = await Offer.findById(req.params.id).populate({
+    const offer = await Offer.findById(req.params.id).populate({
       path: "owner",
-      select: "account",
+      select: "account.username account.phone account.avatar",
     });
-    return res.status(200).json(newOffer);
+    res.json(offer);
   } catch (error) {
+    console.log(error.message);
     res.status(400).json({ message: error.message });
+  }
+});
+
+// Road for publish new offer
+router.post("/offer/publish", isAuthenticated, async (req, res) => {
+  try {
+    const { title, description, price, brand, size, condition, color, city } =
+      req.fields;
+
+    console.log(req.fields);
+
+    if (title && price && req.files.picture.path) {
+      // Creation of a new Offer without picture
+      const newOffer = new Offer({
+        product_name: title,
+        product_description: description,
+        product_price: price,
+        product_details: [
+          { MARQUE: brand },
+          { TAILLE: size },
+          { ÉTAT: condition },
+          { COULEUR: color },
+          { EMPLACEMENT: city },
+        ],
+        owner: req.user,
+      });
+
+      if (req.files.picture.size > 0) {
+        // Send picture at cloudinary if she exist
+        const result = await cloudinary.uploader.unsigned_upload(
+          req.files.picture.path,
+          "vinted_upload",
+          {
+            folder: `api/vinted/offers/${newOffer._id}`,
+            public_id: "preview",
+            cloud_name: "lereacteur",
+          }
+        );
+
+        // Add picture in newOffer
+        newOffer.product_image = result;
+      }
+
+      await newOffer.save();
+
+      res.json(newOffer);
+    } else {
+      res
+        .status(400)
+        .json({ message: "title, price and picture are required" });
+    }
+  } catch (error) {
+    console.log(error.message);
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.put("/offer/update/:id", isAuthenticated, async (req, res) => {
+  const offerToModify = await Offer.findById(req.params.id);
+  try {
+    if (req.fields.title) {
+      offerToModify.product_name = req.fields.title;
+    }
+    if (req.fields.description) {
+      offerToModify.product_description = req.fields.description;
+    }
+    if (req.fields.price) {
+      offerToModify.product_price = req.fields.price;
+    }
+
+    // Create a array and loop in to update what the user wants changed
+    const details = offerToModify.product_details;
+    for (i = 0; i < details.length; i++) {
+      if (details[i].MARQUE) {
+        if (req.fields.brand) {
+          details[i].MARQUE = req.fields.brand;
+        }
+      }
+      if (details[i].TAILLE) {
+        if (req.fields.size) {
+          details[i].TAILLE = req.fields.size;
+        }
+      }
+      if (details[i].ÉTAT) {
+        if (req.fields.condition) {
+          details[i].ÉTAT = req.fields.condition;
+        }
+      }
+      if (details[i].COULEUR) {
+        if (req.fields.color) {
+          details[i].COULEUR = req.fields.color;
+        }
+      }
+      if (details[i].EMPLACEMENT) {
+        if (req.fields.location) {
+          details[i].EMPLACEMENT = req.fields.location;
+        }
+      }
+    }
+    // Tell at Mongoose we modified the array : product_details.
+    offerToModify.markModified("product_details");
+
+    if (req.files.picture) {
+      const result = await cloudinary.uploader.upload(req.files.picture.path, {
+        public_id: `api/vinted/offers/${offerToModify._id}/preview`,
+      });
+      offerToModify.product_image = result;
+    }
+
+    await offerToModify.save();
+
+    res.status(200).json("Offer modified successfully !");
+  } catch (error) {
+    console.log(error.message);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
+  try {
+    // delete picture who where in cloudinary for this offer
+    await cloudinary.api.delete_resources_by_prefix(
+      `api/vinted/offers/${req.params.id}`
+    );
+    // delete the folder where this image was
+    await cloudinary.api.delete_folder(`api/vinted/offers/${req.params.id}`);
+
+    offerToDelete = await Offer.findById(req.params.id);
+
+    await offerToDelete.delete();
+
+    res.status(200).json("Offer deleted successfully !");
+  } catch (error) {
+    console.log(error.message);
+    res.status(400).json({ error: error.message });
   }
 });
 
