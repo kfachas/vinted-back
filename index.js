@@ -3,6 +3,7 @@ const formidableMiddleware = require("express-formidable");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
+const cors = requiret("cors");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -12,6 +13,7 @@ cloudinary.config({
 
 const app = express();
 app.use(formidableMiddleware());
+app.use(cors());
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
