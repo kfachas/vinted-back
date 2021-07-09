@@ -3,7 +3,7 @@ const formidableMiddleware = require("express-formidable");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
-const cors = requiret("cors");
+const cors = require("cors");
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
