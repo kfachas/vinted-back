@@ -86,14 +86,24 @@ router.get("/offer/:id", async (req, res) => {
 // Road for publish new offer
 router.post("/offer/publish", isAuthenticated, async (req, res) => {
   try {
-    const { title, description, price, brand, size, condition, color, city } =
-      req.fields;
+    const {
+      title,
+      description,
+      category,
+      price,
+      brand,
+      size,
+      condition,
+      color,
+      city,
+    } = req.fields;
 
     if (title && price && req.files.picture.path) {
       // Creation of a new Offer without picture
       const newOffer = new Offer({
         product_name: title,
         product_description: description,
+        product_category: category,
         product_price: price,
         product_details: [
           { MARQUE: brand },
@@ -139,6 +149,9 @@ router.put("/offer/update/:id", isAuthenticated, async (req, res) => {
     }
     if (req.fields.description) {
       offerToModify.product_description = req.fields.description;
+    }
+    if (req.fields.category) {
+      offerToModify.product_category = req.fields.category;
     }
     if (req.fields.price) {
       offerToModify.product_price = req.fields.price;
