@@ -50,7 +50,7 @@ router.post("/user/signup", async (req, res) => {
               cloud_name: "lereacteur",
             }
           );
-          newUser.account.avatar = result;
+          newUser.account.avatar = result.secure_url;
         }
 
         // Save his account in DB
