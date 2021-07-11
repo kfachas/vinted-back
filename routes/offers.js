@@ -107,10 +107,10 @@ router.post("/offer/publish", isAuthenticated, async (req, res) => {
 
       if (req.files.picture.size > 0) {
         // Send picture at cloudinary if she exist
-        const result = await cloudinary.uploader.unsigned_upload(
+        const result = await cloudinary.uploader.upload(
           req.files.picture.path,
           {
-            folder: `api/vinted/offers/${newOffer._id}`,
+            folder: `/vinted/offers/${newOffer._id}`,
           }
         );
 
