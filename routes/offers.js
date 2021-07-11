@@ -22,6 +22,9 @@ router.get("/offers", async (req, res) => {
         $gte: req.query.priceMin,
       };
     }
+    if (req.query.category) {
+      filters.product_category = new RegExp(req.query.category, "i");
+    }
 
     if (req.query.priceMax) {
       if (filters.product_price) {
