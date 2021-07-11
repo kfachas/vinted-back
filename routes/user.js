@@ -53,7 +53,6 @@ router.post("/user/signup", async (req, res) => {
       }
     }
   } catch (error) {
-    console.log(error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -80,7 +79,6 @@ router.post("/user/login", async (req, res) => {
       res.status(400).json({ message: "User not found" });
     }
   } catch (error) {
-    console.log(error.message);
     res.json({ message: error.message });
   }
 });

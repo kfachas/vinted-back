@@ -11,10 +11,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-const app = express();
-app.use(formidableMiddleware());
-app.use(cors());
-
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -22,19 +18,23 @@ mongoose.connect(process.env.MONGODB_URI, {
   useFindAndModify: false,
 });
 
+const app = express();
+app.use(formidableMiddleware());
+app.use(cors());
+
 const userRoutes = require("./routes/user");
 const offersRoutes = require("./routes/offers");
 app.use(userRoutes);
 app.use(offersRoutes);
 
 app.get("/", (req, res) => {
-  res.status(200).json("Bienvenue sur l'API de Vinted");
+  res.status(200).json("Welcome on the API of Vinted");
 });
 
 app.all("*", (req, res) => {
-  res.status(400).json({ message: "Page not found ! 😔" });
+  res.status(400).json({ message: "Page not found !" });
 });
 
 app.listen(process.env.PORT, () => {
-  console.log("Server started ! 😎");
+  console.log("Server started !");
 });

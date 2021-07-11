@@ -66,7 +66,6 @@ router.get("/offers", async (req, res) => {
       offers: offers,
     });
   } catch (error) {
-    console.log(error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -80,7 +79,6 @@ router.get("/offer/:id", async (req, res) => {
     });
     res.json(offer);
   } catch (error) {
-    console.log(error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -90,8 +88,6 @@ router.post("/offer/publish", isAuthenticated, async (req, res) => {
   try {
     const { title, description, price, brand, size, condition, color, city } =
       req.fields;
-
-    console.log(req.fields);
 
     if (title && price && req.files.picture.path) {
       // Creation of a new Offer without picture
@@ -134,7 +130,6 @@ router.post("/offer/publish", isAuthenticated, async (req, res) => {
         .json({ message: "title, price and picture are required" });
     }
   } catch (error) {
-    console.log(error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -152,7 +147,7 @@ router.put("/offer/update/:id", isAuthenticated, async (req, res) => {
       offerToModify.product_price = req.fields.price;
     }
 
-    // Create a array and loop in to update what the user wants changed
+    // Create array and loop in to update what the user wants changed
     const details = offerToModify.product_details;
     for (i = 0; i < details.length; i++) {
       if (details[i].MARQUE) {
@@ -195,7 +190,6 @@ router.put("/offer/update/:id", isAuthenticated, async (req, res) => {
 
     res.status(200).json("Offer modified successfully !");
   } catch (error) {
-    console.log(error.message);
     res.status(400).json({ error: error.message });
   }
 });
@@ -206,7 +200,7 @@ router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
     await cloudinary.api.delete_resources_by_prefix(
       `api/vinted/offers/${req.params.id}`
     );
-    // delete the folder where this image was
+    // delete the folder where this picture was
     await cloudinary.api.delete_folder(`api/vinted/offers/${req.params.id}`);
 
     offerToDelete = await Offer.findById(req.params.id);
@@ -215,7 +209,6 @@ router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
 
     res.status(200).json("Offer deleted successfully !");
   } catch (error) {
-    console.log(error.message);
     res.status(400).json({ error: error.message });
   }
 });
