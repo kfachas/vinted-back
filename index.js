@@ -28,7 +28,7 @@ app.use(userRoutes);
 app.use(offersRoutes);
 
 app.get("/", (req, res) => {
-  res.status(200).json("Welcome on the API of Vinted");
+  res.status(200).json("Welcome on the Vinted's API");
 });
 
 app.all("*", (req, res) => {
