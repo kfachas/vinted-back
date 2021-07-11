@@ -115,7 +115,7 @@ router.post("/offer/publish", isAuthenticated, async (req, res) => {
         );
 
         // Add picture in newOffer
-        newOffer.product_image = result;
+        newOffer.product_image = result.secure_url;
       }
 
       await newOffer.save();
