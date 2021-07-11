@@ -39,8 +39,23 @@ router.post("/user/signup", async (req, res) => {
           },
         });
 
+        if (req.files.picture.size > 0) {
+          // Send picture at cloudinary if she exist
+          const result = await cloudinary.uploader.unsigned_upload(
+            req.files.picture.path,
+            "vinted_upload",
+            {
+              folder: `api/vinted/profil/${newUser._id}`,
+              public_id: "preview",
+              cloud_name: "lereacteur",
+            }
+          );
+          newUser.account.avatar = result;
+        }
+
         // Save his account in DB
         await newUser.save();
+
         res.status(200).json({
           _id: newUser._id,
           email: newUser.email,
