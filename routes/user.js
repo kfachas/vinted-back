@@ -43,11 +43,8 @@ router.post("/user/signup", async (req, res) => {
           // Send picture at cloudinary if she exist
           const result = await cloudinary.uploader.unsigned_upload(
             req.files.picture.path,
-            "vinted_upload",
             {
               folder: `api/vinted/profil/${newUser._id}`,
-              public_id: "preview",
-              cloud_name: "lereacteur",
             }
           );
           newUser.account.avatar = result.secure_url;
