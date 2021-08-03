@@ -2,6 +2,7 @@ const express = require("express");
 const formidableMiddleware = require("express-formidable");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
+const stripe = require("stripe")(process.env.KEY_STRIPE);
 require("dotenv").config();
 const cors = require("cors");
 
