@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
-
+const stripe = require("stripe")(
+  "sk_test_51JKLPFG1e6lZLhCEpZ1PYRviMW8uxfzyxzVLZN7RayQT31d5C7AJLkcTzuHXQhKiiHw0qL21ynTOow1ofJMXqJfd00xz7PX23z"
+);
 const cloudinary = require("cloudinary").v2;
 
 const User = require("../models/User");

@@ -31,6 +31,25 @@ app.get("/", (req, res) => {
   res.status(200).json("Welcome on the Vinted's API");
 });
 
+app.post("/payment", async (req, res) => {
+  try {
+    const response = await stripe.charges.create({
+      amount: req.fields.price * 100, // amount inital en centime
+      currency: "eur",
+      description: req.fields.description,
+      source: req.fields.stripeToken,
+    });
+    console.log("La réponse de Stripe ====> ", response);
+    if (response.status === "succeeded") {
+      res.status(200).json({ message: "Paiement validé" });
+    } else {
+      res.status(400).json({ message: "An error occured" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
 app.all("*", (req, res) => {
   res.status(400).json({ message: "Page not found !" });
 });
