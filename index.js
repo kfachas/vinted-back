@@ -40,7 +40,6 @@ app.post("/payment", async (req, res) => {
       description: req.fields.description,
       source: req.fields.stripeToken,
     });
-    console.log(response);
     if (response.status === "succeeded") {
       res.status(200).json({ message: "Paiement validé" });
     } else {
