@@ -85,7 +85,7 @@ router.get("/offer/:id", async (req, res) => {
   }
 });
 
-// Road for publish new offer
+// Road for publish an new offer
 router.post("/offer/publish", isAuthenticated, async (req, res) => {
   try {
     const {
