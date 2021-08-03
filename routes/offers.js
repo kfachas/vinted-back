@@ -215,7 +215,7 @@ router.delete("/offer/delete/:id", isAuthenticated, async (req, res) => {
     // delete the folder where this picture was
     await cloudinary.api.delete_folder(`api/vinted/offers/${req.params.id}`);
 
-    offerToDelete = await Offer.findById(req.params.id);
+    const offerToDelete = await Offer.findById(req.params.id);
 
     await offerToDelete.delete();
 
